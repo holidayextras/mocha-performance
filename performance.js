@@ -12,20 +12,22 @@ module.exports = function(runner) {
     process.exit(1);
   });
   runner.on("end", function() {
+    var totalTime = (new Date()) - startDate;
+    var functions = Object.keys(data).map(function(path) {
+      var record = data[path];
+      return {
+        path: record.path,
+        callCount: record.callCount,
+        optimised: uniq(record.optimised),
+        durations: Object.keys(record.durations).reduce(function(durations, i) {
+          durations[i] = minMaxAverage(record.durations[i]);
+          return durations;
+        }, {}),
+      };
+    }).sort(function(a, b) { return b.callCount - a.callCount; });
     console.log(JSON.stringify({
-      totalTime: ((new Date()) - startDate),
-      functions: Object.keys(data).map(function(funcUri) {
-        var record = data[funcUri];
-        Object.keys(record.durations).forEach(function(i) {
-          if (!(record.durations[i] instanceof Array)) return;
-          record.durations[i] = minMaxAverage(record.durations[i]);
-          if (!(record.optimised instanceof Array)) return;
-          record.optimised = uniq(record.optimised);
-        });
-        return data[funcUri];
-      }).sort(function(a, b) {
-        return b.callCount - a.callCount;
-      })
+      totalTime: totalTime,
+      functions: functions
     }, null, 2));
   });
 };
